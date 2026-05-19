@@ -81,7 +81,7 @@ Open your favorite web browser and head over to:
 SJVN Suvidha comes with a secure backend so you can monitor usage and manage the FAQ sidebar.
 
 * **How to access:** Click the **⚙ Admin** button in the sidebar.
-* **Default Password:** `SJVN@Admin2024` *(You can change this in the environment variables).*
+* **Default Password:** `12345678` *(You can change this in the environment variables).*
 * **What you can do:** - Check real-time Audit Logs (timestamps, user IPs, and what people are asking).
   - Add or delete questions from the sidebar's FAQ database.
 
