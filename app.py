@@ -37,7 +37,7 @@ os.makedirs(DOCS_DIR, exist_ok=True)
 
 app = Flask(__name__)
 app.secret_key    = os.environ.get('FLASK_SECRET_KEY', 'super_secure_fallback_key_change_this')
-ADMIN_PASSWORD    = os.environ.get('ADMIN_PASSWORD', 'SJVN@Admin2024')
+ADMIN_PASSWORD    = os.environ.get('ADMIN_PASSWORD', '1245678')
 
 init_db()
 init_feedback_tables()
