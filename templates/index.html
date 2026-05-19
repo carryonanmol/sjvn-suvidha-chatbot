@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SJVN Suvidha Chatbot</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<style>
+  :root {
+    --glass-bg:       rgba(255,255,255,0.55);
+    --glass-bg-dark:  rgba(255,255,255,0.35);
+    --glass-border:   rgba(255,255,255,0.75);
+    --glass-shadow:   0 8px 32px rgba(100,130,200,0.18);
+
+    --primary:        #3a6bc8;
+    --primary-light:  #6a9ae0;
+    --accent:         #f0a030;
+    --accent-soft:    #fde7c0;
+    --text:           #2c3a5a;
+    --muted:          #7a8fb5;
+    --success:        #2e9e6e;
+    --danger:         #d84040;
+    --radius:         16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(135deg, #ddeeff 0%, #e8d8f8 30%, #d8f0e8 60%, #fce8d8 100%);
+    min-height: 100vh;
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Ambient background blobs */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.45;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, #b8d8ff 0%, transparent 70%);
+    top: -100px; left: -100px;
+    animation: blob1 12s ease-in-out infinite alternate;
+  }
+  body::after {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, #d8c8f8 0%, transparent 70%);
+    bottom: -80px; right: 100px;
+    animation: blob2 10s ease-in-out infinite alternate;
+  }
+  @keyframes blob1 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(60px,40px) scale(1.1)} }
+  @keyframes blob2 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(-50px,30px) scale(1.12)} }
+
+  /* ── Sidebar ─────────────────────────────────────────────────────────── */
+
+  #sidebar-header {
+    padding: 20px 14px 20px;
+    border-bottom: 1.5px solid rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 80px;
+    flex-shrink: 0;
+  }
+  #sidebar-logo {
+    width: 46px; height: 46px;
+    object-fit: contain;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: white;
+    padding: 3px;
+    box-shadow: 0 2px 10px rgba(100,130,200,0.2);
+  }
+  .sidebar-brand { display: flex; flex-direction: column; flex: 1; overflow: visible; }
+  .brand-main {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+    line-height: 1.2;
+    display: flex;
+    gap: 5px;
+    align-items: baseline;
+    flex-wrap: nowrap;
+  }
+  .brand-sjvn {
+    color: #0d2e6e;
+    font-weight: 900;
+    font-size: 1.35rem;
+  }
+  .brand-suvidha {
+    color: #0d2e6e;
+    font-weight: 800;
+    font-size: 1.3rem;
+  }
+    .brand-chatbot {
+    color: #d4500a;
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    align-self: center;
+  }
+
+
+  .sidebar-text { transition: opacity 0.2s; }
+
+  /* Sidebar section heading */
+  .sidebar-section-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--muted);
+    padding: 14px 16px 6px;
+  }
+
+  #doc-list { flex: 1; overflow-y: auto; padding: 6px 8px 10px; transition: opacity 0.2s; }
+  .doc-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 0.84rem;
+    font-weight: 600;
+    border-radius: 12px;
+    margin-bottom: 4px;
+    border: 1.5px solid transparent;
+    transition: all .18s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    flex-direction: column;
+    color: var(--text);
+  }
+  .doc-item:hover {
+    background: rgba(100,150,240,0.12);
+    border-color: rgba(100,150,240,0.25);
+  }
+  .doc-item.active {
+    background: rgba(100,150,240,0.18);
+    border-color: rgba(100,150,240,0.4);
+    color: var(--primary);
+    box-shadow: 0 2px 12px rgba(58,107,200,0.1);
+  }
+  .doc-item small {
+    display: block;
+    font-size: .72rem;
+    font-weight: 400;
+    color: var(--muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #sidebar-footer {
+    padding: 12px 14px;
+    font-size: 0.75rem;
+    border-top: 1.5px solid rgba(255,255,255,0.7);
+    opacity: 0.85;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+    color: var(--muted);
+  }
+
+
+  .brand-main {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+    line-height: 1.2;
+    display: flex;
+    gap: 5px;
+    align-items: baseline;
+    flex-wrap: nowrap;
+    flex: 1;
+  }
+  .brand-sjvn {
+    color: #0d2e6e;
+    font-weight: 900;
+    font-size: 1.35rem;
+  }
+  .brand-suvidha {
+    color: #0d2e6e;
+    font-weight: 800;
+    font-size: 1.3rem;
+  }
+  .brand-chatbot {
+    color: #d4500a;
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    align-self: center;
+  }
+  /* ── Main ─────────────────────────────────────────────────────────────── */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; z-index: 1; height: 100%; }
+
+  /* Topbar */
+  #topbar {
+    background: rgba(255,255,255,0.58);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(200,215,255,0.6);
+    padding: 12px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 16px rgba(100,130,200,0.1);
+  }
+  #topbar h2 {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary);
+    flex: 1;
+    letter-spacing: 0.2px;
+  }
+  #status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #ccc;
+    transition: background .3s;
+    box-shadow: 0 0 0 3px rgba(204,204,204,0.25);
+  }
+  #status-dot.online {
+    background: #3ecf8e;
+    box-shadow: 0 0 0 3px rgba(62,207,142,0.25);
+  }
+
+  /* Chat area */
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .msg { display: flex; flex-direction: column; max-width: 80%; }
+  .msg.user  { align-self: flex-end;  align-items: flex-end; }
+  .msg.bot   { align-self: flex-start; align-items: flex-start; }
+
+  .bubble {
+    padding: 13px 17px;
+    border-radius: var(--radius);
+    line-height: 1.65;
+    font-size: .9rem;
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+  }
+  .msg.user .bubble {
+    background: linear-gradient(135deg, rgba(58,107,200,0.82), rgba(106,154,224,0.82));
+    color: #fff;
+    border: 1.5px solid rgba(255,255,255,0.4);
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 20px rgba(58,107,200,0.25);
+  }
+  .msg.bot .bubble {
+    background: rgba(255,255,255,0.65);
+    border: 1.5px solid rgba(255,255,255,0.85);
+    border-bottom-left-radius: 4px;
+    max-width: 100%;
+    box-shadow: 0 4px 24px rgba(100,130,200,0.12);
+    color: var(--text);
+  }
+
+  .bubble h2 { font-size: 1rem; color: var(--primary); margin: 12px 0 6px; font-weight: 700; }
+  .bubble h3 { font-size: .9rem; color: var(--primary); margin: 10px 0 4px; font-weight: 700; }
+  .bubble p  { margin-bottom: 8px; }
+  .bubble ul, .bubble ol { padding-left: 20px; margin-bottom: 8px; }
+  .bubble li { margin-bottom: 4px; }
+  .bubble strong { color: var(--primary); }
+  .bubble code { background: rgba(100,130,200,0.1); padding: 1px 6px; border-radius: 5px; font-size: .85em; }
+  .bubble pre  { background: rgba(100,130,200,0.08); padding: 10px; border-radius: 10px; overflow-x: auto; margin: 8px 0; }
+  .bubble table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: .85rem; }
+  .bubble th { background: rgba(58,107,200,0.15); color: var(--primary); padding: 7px 12px; text-align: left; font-weight: 700; }
+  .bubble td { padding: 6px 12px; border: 1px solid rgba(100,130,200,0.2); }
+  .bubble tr:nth-child(even) td { background: rgba(100,130,200,0.05); }
+
+  /* Table download toolbar — appears above each table */
+  .table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 0 2px;
+    flex-wrap: wrap;
+  }
+  .table-label {
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    flex: 1;
+  }
+  .btn-dl-pdf, .btn-dl-csv {
+    font-size: .72rem;
+    font-weight: 700;
+    padding: 3px 11px;
+    border-radius: 8px;
+    border: 1.5px solid;
+    cursor: pointer;
+    transition: all .15s;
+    line-height: 1.6;
+    background: rgba(255,255,255,0.7);
+  }
+  .btn-dl-pdf {
+    border-color: rgba(58,107,200,0.35);
+    color: var(--primary);
+  }
+  .btn-dl-pdf:hover { background: rgba(58,107,200,0.12); border-color: var(--primary); }
+  .btn-dl-csv {
+    border-color: rgba(46,158,110,0.4);
+    color: var(--success);
+  }
+  .btn-dl-csv:hover { background: rgba(46,158,110,0.1); border-color: var(--success); }
+
+  /* Hindi translation section */
+  .hindi-section {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, rgba(255,153,51,0.07), rgba(19,136,8,0.05));
+    border-left: 3px solid #FF9933;
+    border-radius: 0 10px 10px 0;
+  }
+  .hindi-section h3 {
+    color: #c0560a !important;
+    font-size: .82rem !important;
+    margin: 0 0 6px !important;
+    letter-spacing: .3px;
+  }
+
+  /* Print stylesheet — used when printing tables to PDF */
+  @media print {
+    body > *:not(#print-area) { display: none !important; }
+    #print-area {
+      display: block !important;
+      font-family: 'Nunito', Arial, sans-serif;
+      padding: 20px;
+      color: #000;
+    }
+    #print-area h2 { font-size: 14pt; margin-bottom: 8px; color: #0d2e6e; }
+    #print-area p  { font-size: 9pt; color: #555; margin-bottom: 14px; }
+    #print-area table { border-collapse: collapse; width: 100%; font-size: 9pt; }
+    #print-area th {
+      background: #d0daf5 !important;
+      color: #0d2e6e;
+      padding: 6px 10px;
+      text-align: left;
+      font-weight: 700;
+      border: 1px solid #aab;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    #print-area td { padding: 5px 10px; border: 1px solid #ccd; }
+    #print-area tr:nth-child(even) td {
+      background: #f0f4ff !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+
+  .source-tag {
+    font-size: .72rem;
+    color: var(--muted);
+    margin-top: 5px;
+    padding: 2px 10px;
+    background: rgba(100,130,200,0.1);
+    border-radius: 10px;
+    display: inline-block;
+    cursor: pointer;
+    transition: all .15s;
+    text-decoration: none;
+  }
+  .source-tag:hover {
+    background: rgba(58,107,200,0.18);
+    color: var(--primary);
+    text-decoration: underline;
+  }
+  /* Hindi toggle button */
+  #lang-btn {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.75);
+    border: 1.5px solid rgba(100,150,240,0.3);
+    cursor: pointer;
+    display: inline-flex !important; align-items: center; justify-content: center;
+    font-size: .75rem; font-weight: 700;
+    transition: all .2s;
+    flex-shrink: 0;
+    backdrop-filter: blur(8px);
+    color: var(--text);
+    line-height: 1;
+  }
+  #lang-btn:hover { background: rgba(188,212,247,0.6); border-color: rgba(58,107,200,0.45); transform: scale(1.05); }
+  #lang-btn.hindi { background: rgba(255,153,51,0.2); border-color: #FF9933; color: #d4500a; }
+
+
+
+  /* Input row */
+  #input-area {
+    background: rgba(255,255,255,0.60);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-top: 1px solid rgba(200,215,255,0.6);
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+    box-shadow: 0 -2px 16px rgba(100,130,200,0.08);
+    flex-shrink: 0;
+    width: 100%;
+  }
+  #query-input {
+    flex: 1;
+    border: 1.5px solid rgba(100,150,240,0.3);
+    border-radius: 14px;
+    padding: 11px 15px;
+    font-size: .95rem;
+    font-family: inherit;
+    resize: none;
+    max-height: 120px;
+    min-height: 46px;
+    transition: border-color .2s, box-shadow .2s;
+    background: rgba(255,255,255,0.70);
+    backdrop-filter: blur(8px);
+    color: #2c3a5a;
+  }
+  #query-input::placeholder { color: var(--muted); }
+  #query-input:focus {
+    outline: none;
+    border-color: rgba(58,107,200,0.55);
+    box-shadow: 0 0 0 3px rgba(58,107,200,0.1);
+  }
+
+  #voice-btn {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.75);
+    border: 1.5px solid rgba(100,150,240,0.3);
+    cursor: pointer;
+    display: inline-flex !important; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    transition: all .2s;
+    flex-shrink: 0;
+    backdrop-filter: blur(8px);
+  }
+  #voice-btn:hover { background: rgba(188,212,247,0.6); border-color: rgba(58,107,200,0.45); transform: scale(1.05); }
+  #voice-btn.listening {
+    background: rgba(247,200,212,0.7);
+    border-color: var(--danger);
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(216,64,64,0.35); }
+    50%      { box-shadow: 0 0 0 9px rgba(216,64,64,0); }
+  }
+
+  .tts-btn {
+    border: none; background: none; cursor: pointer;
+    font-size: .85rem; color: var(--muted);
+    padding: 3px 7px; border-radius: 8px;
+    transition: all .15s;
+  }
+  .tts-btn:hover { color: var(--primary); background: rgba(100,150,240,0.12); }
+
+  #send-btn {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: #fff; border: none;
+    cursor: pointer; font-size: 1.1rem;
+    display: inline-flex !important; align-items: center; justify-content: center;
+    transition: all .2s;
+    flex-shrink: 0;
+    box-shadow: 0 3px 14px rgba(58,107,200,0.35);
+  }
+  #send-btn:hover { transform: scale(1.07); box-shadow: 0 5px 20px rgba(58,107,200,0.45); }
+  #send-btn:disabled { opacity: .5; cursor: default; transform: none; }
+
+  #voice-status {
+    font-size: .78rem; color: var(--muted);
+    text-align: center; padding: 3px 0; display: none;
+    background: rgba(255,255,255,0.5);
+  }
+  #voice-status.show { display: block; }
+
+  .typing-dots span {
+    display: inline-block; width: 7px; height: 7px;
+    border-radius: 50%; background: var(--primary-light);
+    margin: 0 2px; animation: bounce .8s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: .15s; }
+  .typing-dots span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce {
+    0%,80%,100% { transform: translateY(0); }
+    40%          { transform: translateY(-6px); }
+  }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(100,130,200,0.25); border-radius: 3px; }
+
+  #empty-state { margin: auto; text-align: center; color: var(--muted); padding: 20px; }
+  #empty-state .icon { font-size: 3.2rem; margin-bottom: 14px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); }
+  #empty-state h3    { font-family: 'Quicksand', sans-serif; font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+  #empty-state p     { font-size: .875rem; line-height: 1.7; max-width: 380px; margin: 0 auto; }
+  .suggestion-chips  { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 18px; }
+  .chip {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(8px);
+    border: 1.5px solid rgba(100,150,240,0.3);
+    border-radius: 20px;
+    padding: 7px 16px;
+    font-size: .8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s;
+    color: var(--primary);
+  }
+  .chip:hover {
+    background: rgba(188,212,247,0.6);
+    border-color: rgba(58,107,200,0.45);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(58,107,200,0.15);
+  }
+
+  /* ── Intro animation ──────────────────────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  #main     { animation: fadeUp .45s .1s ease both; }
+
+  /* ══════════════════════════════════════════════════════════════
+     FAQ SIDEBAR — full styles
+  ══════════════════════════════════════════════════════════════ */
+
+  /* Sidebar container */
+  #faq-sidebar {
+    width: 260px;
+    min-width: 190px;
+    max-width: 400px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border-right: 1.5px solid var(--glass-border);
+    box-shadow: 2px 0 18px rgba(100,130,200,0.10);
+    display: flex;
+    flex-direction: column;
+    z-index: 3;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+    transition: width .22s ease, min-width .22s ease;
+  }
+  /* Hidden state */
+  #faq-sidebar.faq-hidden {
+    width: 0 !important;
+    min-width: 0 !important;
+    border: none;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  /* ── Brand row at top ── */
+  #faq-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 14px 11px;
+    border-bottom: 1.5px solid rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.22);
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  #faq-brand-logo {
+    width: 36px; height: 36px;
+    object-fit: contain;
+    flex-shrink: 0;
+    border-radius: 7px;
+    background: #fff;
+    padding: 2px;
+    box-shadow: 0 2px 8px rgba(100,130,200,0.18);
+  }
+  #faq-brand-text { display:flex; align-items:baseline; gap:3px; overflow:hidden; }
+  .fb-sjvn    { font-family:'Quicksand',sans-serif; font-weight:900; font-size:1.08rem; color:#0d2e6e; }
+  .fb-suvidha { font-family:'Quicksand',sans-serif; font-weight:800; font-size:1.05rem; color:#0d2e6e; }
+  .fb-chatbot { font-family:'Quicksand',sans-serif; font-weight:800; font-size:0.62rem; color:#d4500a; letter-spacing:1px; text-transform:uppercase; align-self:center; margin-left:2px; }
+
+  /* ── FAQs label row ── */
+  #faq-sidebar-header {
+    padding: 10px 14px 8px;
+    border-bottom: 1.5px solid rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 8px;
+  }
+  #faq-sidebar-header .faq-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  #faq-admin-btn {
+    background: none;
+    border: 1.5px solid rgba(100,150,240,0.3);
+    border-radius: 8px;
+    padding: 3px 9px;
+    font-size: 0.70rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .18s;
+    white-space: nowrap;
+  }
+  #faq-admin-btn:hover       { background:rgba(58,107,200,0.10); border-color:rgba(58,107,200,0.4); color:var(--primary); }
+  #faq-admin-btn.admin-active{ background:rgba(240,160,48,0.15); border-color:var(--accent); color:#b5700a; }
+
+  /* ── List ── */
+  #faq-list { flex:1; overflow-y:auto; padding:6px 8px 4px; }
+
+  .faq-item {
+    position: relative;
+    padding: 8px 32px 8px 10px;
+    border-radius: 11px;
+    margin-bottom: 3px;
+    border: 1.5px solid transparent;
+    font-size: 0.80rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: all .18s;
+    line-height: 1.4;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .faq-item:hover { background:rgba(100,150,240,0.10); border-color:rgba(100,150,240,0.22); color:var(--primary); }
+  .faq-item .faq-q-icon { flex-shrink:0; font-size:0.80rem; margin-top:1px; color:var(--accent); font-weight:900; }
+  .faq-item .faq-delete-btn {
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    background:none; border:none; cursor:pointer; font-size:0.78rem;
+    color:var(--muted); opacity:0; transition:opacity .15s,color .15s;
+    padding:2px 4px; border-radius:4px; line-height:1;
+  }
+  .faq-item:hover .faq-delete-btn   { opacity:1; }
+  .faq-item .faq-delete-btn:hover   { color:var(--danger); background:rgba(216,64,64,0.10); }
+  /* Always show delete btn when admin mode active */
+  body.faq-admin-on .faq-delete-btn { opacity:1; }
+
+  /* ── Admin add panel ── */
+  #faq-add-area {
+    padding: 8px 10px 10px;
+    border-top: 1.5px solid rgba(255,255,255,0.7);
+    flex-shrink: 0;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+  }
+  #faq-add-area.visible { display:flex; }
+
+  #faq-new-input, #faq-new-answer {
+    width: 100%;
+    border: 1.5px solid rgba(100,150,240,0.30);
+    border-radius: 9px;
+    padding: 7px 9px;
+    font-size: 0.79rem;
+    font-family: inherit;
+    resize: none;
+    transition: border-color .2s, box-shadow .2s;
+    background: rgba(255,255,255,0.76);
+    color: var(--text);
+    box-sizing: border-box;
+  }
+  #faq-new-input  { min-height:50px; max-height:90px; }
+  #faq-new-answer { min-height:68px; max-height:120px; }
+  #faq-new-input::placeholder, #faq-new-answer::placeholder { color:var(--muted); font-size:0.76rem; }
+  #faq-new-input:focus, #faq-new-answer:focus {
+    outline:none; border-color:rgba(58,107,200,0.50); box-shadow:0 0 0 3px rgba(58,107,200,0.09);
+  }
+
+  #faq-add-btn {
+    width:100%; padding:7px 0;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color:#fff; border:none; border-radius:9px;
+    font-size:0.80rem; font-weight:700; cursor:pointer;
+    transition:all .18s; font-family:inherit;
+    box-shadow:0 2px 10px rgba(58,107,200,0.22);
+  }
+  #faq-add-btn:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(58,107,200,0.33); }
+
+  #faq-logout-btn {
+    width:100%; padding:6px 0;
+    background:rgba(216,64,64,0.10); color:var(--danger);
+    border:1.5px solid rgba(216,64,64,0.25); border-radius:9px;
+    font-size:0.76rem; font-weight:700; cursor:pointer;
+    transition:all .18s; font-family:inherit;
+  }
+  #faq-logout-btn:hover { background:rgba(216,64,64,0.18); border-color:var(--danger); }
+
+  #faq-empty { text-align:center; color:var(--muted); font-size:0.76rem; padding:16px 8px; line-height:1.7; display:none; }
+  #faq-empty.show { display:block; }
+
+  #faq-sidebar-footer {
+    padding:6px 12px 8px; font-size:0.68rem;
+    color:var(--muted); border-top:1px solid rgba(255,255,255,0.55);
+    text-align:center; flex-shrink:0;
+  }
+
+  /* ── Resize handle (right edge of sidebar) ── */
+  #faq-resize-handle {
+    position:absolute; top:0; right:0;
+    width:5px; height:100%;
+    cursor:col-resize; z-index:10;
+    background:transparent; transition:background .15s;
+  }
+  #faq-resize-handle:hover, #faq-resize-handle.dragging { background:rgba(58,107,200,0.20); }
+
+  /* ── Toggle button (floats just outside sidebar) ── */
+  #faq-toggle-btn {
+    position:fixed; top:14px; left:0;
+    width:28px; height:32px;
+    background: var(--glass-bg);
+    backdrop-filter:blur(12px);
+    border:1.5px solid var(--glass-border);
+    border-left:none;
+    border-radius:0 8px 8px 0;
+    font-size:0.9rem; cursor:pointer; z-index:4;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:2px 0 8px rgba(100,130,200,0.15);
+    transition: left .22s ease, opacity .18s;
+    opacity:0.7;
+    padding:0;
+    color: var(--primary);
+  }
+  #faq-toggle-btn:hover { opacity:1; }
+  /* When sidebar visible, toggle btn hides (sidebar itself is visible indicator) */
+  #faq-sidebar:not(.faq-hidden) ~ #faq-toggle-btn,
+  #faq-sidebar:not(.faq-hidden) + #faq-toggle-btn { display:none; }
+
+  /* ── Admin Login Modal ── */
+  #admin-modal-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(44,58,90,0.38);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    z-index:100; align-items:center; justify-content:center;
+  }
+  #admin-modal-overlay.show { display:flex; }
+  #admin-modal {
+    background:rgba(255,255,255,0.92);
+    backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%);
+    border:1.5px solid rgba(255,255,255,0.85); border-radius:18px;
+    box-shadow:0 12px 48px rgba(58,107,200,0.22);
+    width:320px; max-width:92vw; padding:0; overflow:hidden;
+    animation:modalPop .22s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes modalPop {
+    from { opacity:0; transform:scale(.88) translateY(12px); }
+    to   { opacity:1; transform:scale(1) translateY(0); }
+  }
+  #admin-modal-header {
+    background:linear-gradient(135deg,var(--primary),var(--primary-light));
+    color:#fff; padding:14px 18px;
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'Quicksand',sans-serif; font-weight:800; font-size:0.95rem;
+  }
+  #admin-modal-close {
+    background:rgba(255,255,255,0.18); border:none; border-radius:7px;
+    color:#fff; font-size:0.85rem; cursor:pointer; padding:3px 8px;
+    line-height:1.4; transition:background .15s;
+  }
+  #admin-modal-close:hover { background:rgba(255,255,255,0.30); }
+  #admin-modal-body { padding:20px 20px 22px; display:flex; flex-direction:column; gap:10px; }
+  #admin-modal-desc { font-size:0.82rem; color:var(--muted); margin:0; line-height:1.55; }
+  #admin-pw-input {
+    width:100%; border:1.5px solid rgba(100,150,240,0.35); border-radius:10px;
+    padding:10px 13px; font-size:0.9rem; font-family:inherit;
+    background:rgba(255,255,255,0.80); color:var(--text);
+    transition:border-color .2s,box-shadow .2s; box-sizing:border-box;
+  }
+  #admin-pw-input:focus { outline:none; border-color:rgba(58,107,200,0.55); box-shadow:0 0 0 3px rgba(58,107,200,0.10); }
+  #admin-pw-error { font-size:0.76rem; color:var(--danger); margin:0; min-height:16px; font-weight:600; }
+  #admin-pw-submit {
+    padding:10px 0;
+    background:linear-gradient(135deg,var(--primary),var(--primary-light));
+    color:#fff; border:none; border-radius:10px;
+    font-size:0.88rem; font-weight:700; cursor:pointer;
+    font-family:inherit; box-shadow:0 3px 12px rgba(58,107,200,0.28); transition:all .18s;
+  }
+  #admin-pw-submit:hover { transform:translateY(-1px); box-shadow:0 5px 18px rgba(58,107,200,0.38); }
+
+
+  /* ── Feedback UI CSS ── */
+  .feedback-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: #666; }
+  .feedback-bar button { background: none; border: 1px solid #ddd; border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 15px; transition: background .15s; }
+  .feedback-bar button:hover { background: #f0f0f0; }
+  .feedback-bar button.active-good { background: #d4edda; border-color:#28a745; }
+  .feedback-bar button.active-bad  { background: #f8d7da; border-color:#dc3545; }
+  .correction-box { display: none; margin-top: 8px; padding: 10px; background: #fff8e1; border: 1px solid #ffc107; border-radius: 8px; width: 100%; }
+  .correction-box textarea { width: 100%; min-height: 60px; border: 1px solid #ccc; border-radius: 6px; padding: 6px; font-size: 13px; resize: vertical; box-sizing: border-box; font-family: inherit;}
+  .correction-box .save-btn { margin-top: 6px; padding: 5px 16px; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;}
+  .correction-box .save-btn:hover { opacity: 0.9; }
+  .correction-box .saved-msg { color: #28a745; font-size: 12px; margin-top: 4px; display: none; font-weight: bold;}
+
+  /* ══════════════════════════════════════════════════════════════
+     MOBILE RESPONSIVE — phones ≤ 640px
+     All rules are additive; no existing code is changed.
+  ══════════════════════════════════════════════════════════════ */
+  @media (max-width: 640px) {
+
+    /* Body stays flex-row but sidebar overlays instead of squeezing main */
+    body { overflow: hidden; }
+
+    /* ── FAQ Sidebar becomes a full-height slide-over overlay ── */
+    #faq-sidebar {
+      position: fixed !important;
+      top: 0; left: 0;
+      height: 100% !important;
+      width: 82vw !important;
+      max-width: 320px !important;
+      min-width: 0 !important;
+      z-index: 50;
+      transform: translateX(0);
+      transition: transform .25s ease, width .22s ease !important;
+      box-shadow: 4px 0 32px rgba(58,107,200,0.22) !important;
+    }
+
+    /* Hidden state: slide off-screen to the left */
+    #faq-sidebar.faq-hidden {
+      width: 82vw !important;
+      transform: translateX(-100%) !important;
+      border: none;
+      box-shadow: none !important;
+    }
+
+    /* Semi-transparent backdrop when sidebar is open */
+    #faq-sidebar:not(.faq-hidden)::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(44,58,90,0.35);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* Main always takes full width (sidebar floats on top) */
+    #main {
+      width: 100% !important;
+      flex: 1 !important;
+      min-width: 0 !important;
+      position: relative;
+      z-index: 1;
+    }
+
+    #faq-logs-btn {
+    width: 100%; 
+    padding: 6px 0;
+    background: rgba(58,107,200,0.10); 
+    color: var(--primary);
+    border: 1.5px solid rgba(58,107,200,0.25); 
+    border-radius: 9px;
+    font-size: 0.76rem; 
+    font-weight: 700; 
+    cursor: pointer;
+    transition: all .18s; 
+    font-family: inherit;
+    text-decoration: none; 
+    text-align: center; 
+    display: block; 
+    box-sizing: border-box;
+    margin-bottom: 6px;
+  }
+  #faq-logs-btn:hover { 
+    background: rgba(58,107,200,0.18); 
+    border-color: var(--primary); 
+  }
+
+    /* Toggle button: always visible on mobile, positioned top-left */
+    #faq-toggle-btn {
+      display: flex !important;
+      position: fixed !important;
+      top: 18px; left: 0 !important;
+      z-index: 51;
+      opacity: 1 !important;
+    }
+    /* Keep toggle button visible even when sidebar is open */
+    #faq-sidebar:not(.faq-hidden) ~ #faq-toggle-btn,
+    #faq-sidebar:not(.faq-hidden) + #faq-toggle-btn {
+      display: flex !important;
+      left: calc(82vw - 2px) !important;
+      max-left: 318px;
+    }
+
+    /* ── Topbar: shrink & accommodate toggle btn ── */
+    #topbar {
+      padding: 10px 12px 10px 36px !important;
+      gap: 8px;
+    }
+    #topbar img#topbar-logo {
+      height: 34px !important;
+    }
+    .brand-main {
+      font-size: 1.05rem !important;
+    }
+    .brand-sjvn  { font-size: 1.08rem !important; }
+    .brand-suvidha { font-size: 1.05rem !important; }
+    .brand-chatbot { font-size: 0.72rem !important; }
+
+    /* ── Chat area ── */
+    #chat {
+      padding: 14px 12px !important;
+      gap: 14px !important;
+    }
+
+    /* Messages: allow wider bubbles on small screen */
+    .msg { max-width: 92% !important; }
+
+    .bubble {
+      font-size: .85rem !important;
+      padding: 11px 13px !important;
+    }
+
+    /* ── Input area ── */
+    #input-area {
+      padding: 10px 10px !important;
+      gap: 7px !important;
+    }
+    #query-input {
+      font-size: .88rem !important;
+      padding: 9px 11px !important;
+      min-height: 42px !important;
+    }
+    #voice-btn, #send-btn, #lang-btn {
+      width: 40px !important;
+      height: 40px !important;
+      font-size: 1rem !important;
+    }
+
+    /* ── Suggestion chips ── */
+    .suggestion-chips { gap: 6px !important; margin-top: 12px !important; }
+    .chip { font-size: .75rem !important; padding: 5px 12px !important; }
+
+    /* ── Empty state ── */
+    #empty-state .icon { font-size: 2.4rem !important; }
+    #empty-state h3    { font-size: 1rem !important; }
+    #empty-state p     { font-size: .8rem !important; }
+
+    /* ── Sidebar internal sizing ── */
+    .fb-sjvn    { font-size: 0.95rem !important; }
+    .fb-suvidha { font-size: 0.92rem !important; }
+
+    /* ── Resize handle: disable on touch ── */
+    #faq-resize-handle { display: none !important; }
+
+    /* ── Admin modal: full-width on mobile ── */
+    #admin-modal {
+      width: 92vw !important;
+      max-width: 92vw !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+
+
+<!-- FAQ Sidebar -->
+<aside id="faq-sidebar">
+
+  <!-- ① Brand header — mirrors SJVN Suvidha Chatbot topbar -->
+  <div id="faq-brand-row">
+    <img id="faq-brand-logo" src="" alt="SJVN" />
+    <div id="faq-brand-text">
+      <span class="fb-sjvn">SJVN</span><span class="fb-suvidha"> Suvidha</span><span class="fb-chatbot"> CHATBOT</span>
+    </div>
+  </div>
+
+  <!-- ② FAQs label + admin btn -->
+  <div id="faq-sidebar-header">
+    <div class="faq-title"><span class="faq-icon">❓</span> FAQs</div>
+    <button id="faq-admin-btn" onclick="openAdminLogin()" title="Admin login">⚙ Admin</button>
+  </div>
+
+  <!-- ③ FAQ list -->
+  <div id="faq-list">
+    <div id="faq-empty">No FAQs available.</div>
+  </div>
+
+  <!-- ④ Admin add panel (hidden by default) -->
+  <div id="faq-add-area">
+    <textarea id="faq-new-input"  placeholder="Question…"                          rows="2"></textarea>
+    <textarea id="faq-new-answer" placeholder="Answer… (leave blank → uses AI)"    rows="3"></textarea>
+    
+    <button id="faq-add-btn"    onclick="addFaq()">＋ Save FAQ</button>
+    
+    <a href="/admin/dashboard" target="_blank" id="faq-logs-btn">📊 View Audit Logs</a>
+    
+    <button id="faq-logout-btn" onclick="logoutAdmin()">🔒 Logout Admin</button>
+  </div>
+
+  <div id="faq-sidebar-footer">Click a question to see its answer</div>
+
+  <!-- ⑤ Drag-to-resize handle on right edge -->
+  <div id="faq-resize-handle"></div>
+</aside>
+
+<!-- Hide/show toggle button (sits just outside sidebar) -->
+<button id="faq-toggle-btn" onclick="toggleFaqSidebar()" title="Toggle FAQ panel">❓</button>
+
+<!-- Admin Login Modal -->
+<div id="admin-modal-overlay" onclick="closeAdminModal()">
+  <div id="admin-modal" onclick="event.stopPropagation()">
+    <div id="admin-modal-header">
+      <span>🔐 Admin Login</span>
+      <button id="admin-modal-close" onclick="closeAdminModal()">✕</button>
+    </div>
+    <div id="admin-modal-body">
+      <p id="admin-modal-desc">Enter the admin password to manage FAQs.</p>
+      <input type="password" id="admin-pw-input" placeholder="Password" autocomplete="off" />
+      <p id="admin-pw-error"></p>
+      <button id="admin-pw-submit" onclick="submitAdminLogin()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<main id="main">
+  <div id="topbar">
+    <img src="data:image/png;base64,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" id="topbar-logo" alt="SJVN Logo" style="height:44px;width:auto;object-fit:contain;flex-shrink:0;border-radius:6px;">
+    <div class="brand-main"><span class="brand-sjvn">SJVN</span> <span class="brand-suvidha">Suvidha</span> <span class="brand-chatbot">CHATBOT</span></div>
+    <div id="status-dot" title="Ollama status"></div>
+  </div>
+
+  <div id="chat">
+    <div id="empty-state">
+      <div class="icon">💬</div>
+      <h3>Ask anything about SJVN policies</h3>
+      <p>Type your question or use the 🎤 mic button to speak.<br>
+         Try asking about DOP clauses, leave rules, procurement limits…</p>
+      <div class="suggestion-chips">
+        <span class="chip" onclick="fillQ('clause 23 section 3 dop')">Clause 23 Section III DOP</span>
+        <span class="chip" onclick="fillQ('clause 28 section 3 dop')">Clause 28 Section III DOP</span>
+        <span class="chip" onclick="fillQ('What is maternity leave duration?')">Maternity leave</span>
+        <span class="chip" onclick="fillQ('Open tender financial limit DOP')">Tender limits</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="voice-status">🎤 Listening… speak your question</div>
+
+  <div id="input-area" style="display:flex!important;flex-direction:row!important;align-items:center!important;width:100%!important;">
+    <textarea id="query-input" placeholder="Type your policy question here… / यहाँ अपना प्रश्न लिखें…" rows="1"></textarea>
+    <button id="lang-btn" title="Toggle Hindi/English voice" onclick="toggleLang()">EN</button>
+    <button id="voice-btn" title="Voice input" onclick="toggleVoice()">🎤</button>
+    <button id="send-btn"  title="Send" onclick="sendQuery()">➤</button>
+  </div>
+</main>
+
+
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+let selectedFile = '__all__';
+let history      = [];
+let currentQuery = '';
+let corrQuery    = '';
+let corrBadAns   = '';
+let isStreaming  = false;
+let recognition  = null;
+let isListening  = false;
+let speechSynth  = window.speechSynthesis;
+let isSpeaking   = false;
+let voiceEnabled = true;    // TTS on by default — toggle with 🔊 button
+let hindiMode    = false;   // false = English (en-IN), true = Hindi (hi-IN)
+
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadStatus();
+  loadFiles();
+  setupVoice();
+  const inp = document.getElementById('query-input');
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuery(); }
+  });
+  inp.addEventListener('input', () => {
+    inp.style.height = 'auto';
+    inp.style.height = inp.scrollHeight + 'px';
+  });
+});
+
+// ── Status & file list ─────────────────────────────────────────────────────────
+async function loadStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    document.getElementById('status-dot').className   = d.model ? 'online' : '';
+    document.getElementById('model-info').textContent = 'Model: ' + (d.model || 'none');
+    document.getElementById('correction-count').textContent =
+      d.corrections_stored ? '💾 ' + d.corrections_stored + ' corrections' : '';
+  } catch(e) {
+    document.getElementById('model-info').textContent = '⚠ Ollama offline';
+  }
+}
+
+async function loadFiles() {
+  const r = await fetch('/api/files');
+  const files = await r.json();
+  const list  = document.getElementById('doc-list');
+  list.innerHTML = `
+    <div class="doc-item active" data-file="__all__" onclick="selectFile('__all__', this)">
+      📂 All Documents <small>Search across everything</small>
+    </div>`;
+  files.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'doc-item';
+    div.setAttribute('data-file', f.filename);
+    div.onclick = function() { selectFile(f.filename, this); };
+    div.innerHTML = `📄 ${f.filename}<br><small>${f.chunks || ''} chunks</small>`;
+    list.appendChild(div);
+  });
+}
+
+function selectFile(fn, el) {
+  selectedFile = fn;
+  document.querySelectorAll('.doc-item').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── Chat ───────────────────────────────────────────────────────────────────────
+function fillQ(q) {
+  const inp = document.getElementById('query-input');
+  inp.value = q;
+  inp.focus();
+}
+
+async function sendQuery() {
+  if (isStreaming) return;
+  const inp   = document.getElementById('query-input');
+  const query = inp.value.trim();
+  if (!query) return;
+  if (speechSynth && speechSynth.speaking) speechSynth.cancel();
+  currentQuery = query;
+  inp.value    = '';
+  inp.style.height = 'auto';
+  document.getElementById('empty-state')?.remove();
+  appendUserMsg(query);
+  isStreaming = true;
+  document.getElementById('send-btn').disabled = true;
+  const botDiv  = appendBotMsg('');
+  const bubble  = botDiv.querySelector('.bubble');
+  const typingEl = document.createElement('div');
+  typingEl.className = 'typing-dots';
+  typingEl.innerHTML = '<span></span><span></span><span></span>';
+  bubble.appendChild(typingEl);
+  let fullText = '';
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        query,
+        history: history.slice(-6),
+        filename: selectedFile === '__all__' ? null : selectedFile,
+        force_hindi: hindiMode,
+      }),
+    });
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    typingEl.remove();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const lines = decoder.decode(value).split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (data === '[DONE]') break;
+        try {
+          const chunk = JSON.parse(data);
+          fullText += chunk;
+          bubble.innerHTML = makeSourcesClickable(marked.parse(fullText));
+        } catch {}
+      }
+    }
+    if (voiceEnabled && fullText) speakText(stripMarkdown(fullText));
+    history.push({role:'user', content: query});
+    history.push({role:'assistant', content: fullText.slice(0, 400)});
+    
+    // ── Post-process the completed bot message ───────────────────────────────
+    // 1. Add PDF/CSV download buttons above every table found in the response
+    attachTableDownloads(bubble, query);
+    // 2. Style the Hindi translation section with orange left border
+    styleHindiSection(bubble);
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const activeFile = selectedFile === '__all__' ? null : selectedFile;
+    attachFeedback(botDiv, query, activeFile, fullText);
+    // --------------------------------
+    
+  } catch(e) {
+    typingEl.remove();
+    bubble.textContent = '⚠️ Error: ' + e.message;
+  }
+  isStreaming = false;
+  document.getElementById('send-btn').disabled = false;
+  scrollChat();
+}
+
+function appendUserMsg(text) {
+  const chat = document.getElementById('chat');
+  const div  = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `<div class="bubble">${escHtml(text)}</div>`;
+  chat.appendChild(div);
+  scrollChat();
+}
+
+function appendBotMsg(text) {
+  const chat = document.getElementById('chat');
+  const div  = document.createElement('div');
+  div.className = 'msg bot';
+  div.innerHTML = `<div class="bubble">${text ? makeSourcesClickable(marked.parse(text)) : ''}</div>`;
+  chat.appendChild(div);
+  scrollChat();
+  return div;
+}
+
+function attachFeedback(msgEl, query, filename, answerText) {
+  const getAnswerText = () => answerText.trim().substring(0, 800);
+
+  const bar = document.createElement('div');
+  bar.className = 'feedback-bar';
+  bar.innerHTML = `
+    <span>Was this helpful?</span>
+    <button class="thumb-up" title="Yes, correct">👍</button>
+    <button class="thumb-down" title="No, incorrect">👎</button>
+    <button class="tts-btn" title="Read aloud" onclick="toggleSpeak(this, '${escAttr(stripMarkdown(answerText))}')">🔊</button>
+    <div class="correction-box">
+      <div style="font-size:13px;margin-bottom:4px;color:#856404;font-weight:bold;">
+        What is the correct answer? (will be saved for future use)
+      </div>
+      <textarea placeholder="Type the correct policy information here..."></textarea>
+      <br>
+      <button class="save-btn">💾 Save Correction</button>
+      <div class="saved-msg">✅ Correction saved! The system will learn from this.</div>
+    </div>
+  `;
+
+  const thumbUp      = bar.querySelector('.thumb-up');
+  const thumbDown    = bar.querySelector('.thumb-down');
+  const corrBox      = bar.querySelector('.correction-box');
+  const corrTA       = bar.querySelector('textarea');
+  const saveBtn      = bar.querySelector('.save-btn');
+  const savedMsg     = bar.querySelector('.saved-msg');
+
+  thumbUp.addEventListener('click', () => {
+    thumbUp.classList.add('active-good');
+    thumbDown.classList.remove('active-bad');
+    corrBox.style.display = 'none';
+    sendFeedbackAPI(query, 1, null, null, filename);
+  });
+
+  thumbDown.addEventListener('click', () => {
+    thumbDown.classList.add('active-bad');
+    thumbUp.classList.remove('active-good');
+    corrBox.style.display = 'block';
+    corrBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  saveBtn.addEventListener('click', () => {
+    const correction = corrTA.value.trim();
+    if (!correction) { corrTA.focus(); return; }
+    const badAnswer = getAnswerText();
+    sendFeedbackAPI(query, -1, badAnswer, correction, filename);
+    saveBtn.disabled = true;
+    savedMsg.style.display = 'block';
+    setTimeout(() => { corrBox.style.display = 'none'; }, 3000);
+  });
+
+  msgEl.appendChild(bar);
+}
+
+async function sendFeedbackAPI(query, rating, badAnswer, correction, sourceHint) {
+  try {
+    await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query:       query,
+        rating:      rating,
+        bad_answer:  badAnswer  || null,
+        correction:  correction || null,
+        source_hint: sourceHint || null,
+      })
+    });
+  } catch (e) {
+    console.warn('Feedback send failed:', e);
+  }
+}
+
+
+
+function setupVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    document.getElementById('voice-btn').style.opacity = '.4';
+    document.getElementById('voice-btn').onclick = () => alert('Voice input requires Chrome or Edge.');
+    return;
+  }
+  recognition = new SpeechRecognition();
+  recognition.continuous = false; recognition.interimResults = true;
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('voice-btn').classList.add('listening');
+    document.getElementById('voice-status').classList.add('show');
+    document.getElementById('voice-status').textContent =
+      hindiMode ? '🎤 सुन रहा हूँ… हिंदी में बोलें' : '🎤 Listening… speak your question';
+  };
+  recognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    const inp = document.getElementById('query-input');
+    inp.value = final || interim;
+    inp.style.height = 'auto'; inp.style.height = inp.scrollHeight + 'px';
+    if (final) { stopListening(); setTimeout(sendQuery, 300); }
+  };
+  recognition.onend  = stopListening;
+  recognition.onerror = (e) => {
+    console.warn('Speech error:', e.error); stopListening();
+    if (e.error === 'not-allowed') alert('Microphone permission denied.');
+  };
+}
+
+function toggleLang() {
+  hindiMode = !hindiMode;
+  const btn = document.getElementById('lang-btn');
+  if (hindiMode) {
+    btn.textContent = 'हि';
+    btn.classList.add('hindi');
+    btn.title = 'Hindi mode ON — switch to English';
+    document.getElementById('query-input').placeholder = 'यहाँ अपना प्रश्न हिंदी में लिखें…';
+  } else {
+    btn.textContent = 'EN';
+    btn.classList.remove('hindi');
+    btn.title = 'English mode — switch to Hindi';
+    document.getElementById('query-input').placeholder = 'Type your policy question here… / यहाँ अपना प्रश्न लिखें…';
+  }
+  // Update recognition language on the fly
+  if (recognition) recognition.lang = hindiMode ? 'hi-IN' : 'en-IN';
+}
+function toggleVoice() {
+  if (isListening) { stopListening(); return; }
+  if (!recognition) return;
+  try {
+    recognition.lang = hindiMode ? 'hi-IN' : 'en-IN';
+    recognition.start();
+  } catch(e) { console.warn(e); }
+}
+function stopListening() {
+  isListening = false;
+  document.getElementById('voice-btn').classList.remove('listening');
+  document.getElementById('voice-status').classList.remove('show');
+  try { recognition && recognition.stop(); } catch {}
+}
+
+function detectLang(text) {
+  // If text contains Devanagari characters → Hindi
+  return /[\u0900-\u097F]/.test(text) ? 'hi-IN' : 'en-IN';
+}
+
+function speakText(text) {
+  if (!speechSynth) return;
+  speechSynth.cancel();
+  const clean = text.replace(/\[Source:[^\]]+\]/g,'').slice(0,500);
+  const utt = new SpeechSynthesisUtterance(clean);
+  utt.lang = detectLang(clean); utt.rate = 0.95;
+  isSpeaking = true; utt.onend = () => { isSpeaking = false; };
+  speechSynth.speak(utt);
+}
+function toggleSpeak(btn, text) {
+  if (speechSynth && speechSynth.speaking) { speechSynth.cancel(); btn.textContent = '🔊'; return; }
+  btn.textContent = '🔇';
+  const utt = new SpeechSynthesisUtterance(text.slice(0,500));
+  utt.lang = detectLang(text); utt.rate = 0.95; utt.onend = () => { btn.textContent = '🔊'; };
+  speechSynth.speak(utt);
+}
+function makeSourcesClickable(html) {
+  // Convert [Source: filename.pdf | Page X] into clickable anchor tags
+  return html.replace(
+    /\[Source:\s*([^|\]]+\.pdf)\s*\|\s*Page\s*(\d+)\]/gi,
+    (match, fname, page) => {
+      const f = fname.trim();
+      const p = page.trim();
+      const url = `/api/files/${encodeURIComponent(f)}#page=${p}`;
+      return `<a class="source-tag" href="${url}" target="_blank" title="Open ${f} at page ${p}">📄 Source: ${f} | Page ${p}</a>`;
+    }
+  );
+}
+
+function stripMarkdown(md) {
+  return md.replace(/#{1,6}\s*/g,'').replace(/\*\*([^*]+)\*\*/g,'$1')
+    .replace(/\*([^*]+)\*/g,'$1').replace(/`[^`]+`/g,'')
+    .replace(/\[[^\]]+\]\([^)]+\)/g,'').replace(/\|[^|\n]+/g,'')
+    .replace(/---+/g,'').replace(/\n{2,}/g,'. ').trim();
+}
+// ── Table download helpers ─────────────────────────────────────────────────────
+
+/**
+ * After a bot message finishes streaming, find all <table> elements inside the
+ * bubble, and insert a small toolbar above each one with "📥 PDF" and "📊 CSV"
+ * download buttons.
+ */
+function attachTableDownloads(bubbleEl, queryText) {
+  const tables = bubbleEl.querySelectorAll('table');
+  tables.forEach((tbl, idx) => {
+    const toolbar = document.createElement('div');
+    toolbar.className = 'table-toolbar';
+
+    const label = document.createElement('span');
+    label.className = 'table-label';
+    label.textContent = tables.length > 1 ? `📊 Table ${idx + 1}` : '📊 Table';
+
+    const pdfBtn = document.createElement('button');
+    pdfBtn.className = 'btn-dl-pdf';
+    pdfBtn.textContent = '📥 Save as PDF';
+    pdfBtn.title = 'Print / save this table as PDF';
+    pdfBtn.onclick = () => printTableAsPdf(tbl, queryText);
+
+    const csvBtn = document.createElement('button');
+    csvBtn.className = 'btn-dl-csv';
+    csvBtn.textContent = '⬇ Download CSV';
+    csvBtn.title = 'Download this table as a CSV file';
+    csvBtn.onclick = () => downloadTableAsCsv(tbl, queryText, idx);
+
+    toolbar.appendChild(label);
+    toolbar.appendChild(pdfBtn);
+    toolbar.appendChild(csvBtn);
+
+    // Insert toolbar immediately before the table
+    tbl.parentNode.insertBefore(toolbar, tbl);
+  });
+}
+
+/**
+ * Print a single <table> element as a PDF via the browser print dialog.
+ * Temporarily populates #print-area and triggers window.print().
+ */
+function printTableAsPdf(tableEl, queryText) {
+  const printArea = document.getElementById('print-area');
+  const title = queryText ? queryText.substring(0, 120) : 'SJVN Suvidha — Table';
+  const now = new Date().toLocaleString('en-IN', {
+    dateStyle: 'medium', timeStyle: 'short'
+  });
+  printArea.innerHTML =
+    `<h2>SJVN Suvidha — Policy Table</h2>` +
+    `<p><strong>Query:</strong> ${escHtml(title)}</p>` +
+    `<p style="font-size:8pt;color:#888;">Printed: ${now}</p>` +
+    tableEl.outerHTML;
+  printArea.style.display = 'block';
+  window.print();
+  // Restore after print dialog closes
+  setTimeout(() => { printArea.style.display = 'none'; printArea.innerHTML = ''; }, 1500);
+}
+
+/**
+ * Convert a <table> element to a CSV string and trigger a download.
+ */
+function downloadTableAsCsv(tableEl, queryText, tableIdx) {
+  const rows = tableEl.querySelectorAll('tr');
+  const lines = [];
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('th, td');
+    const vals  = Array.from(cells).map(c => {
+      // Wrap in quotes; escape any internal quotes
+      return '"' + c.innerText.trim().replace(/"/g, '""').replace(/\n/g, ' ') + '"';
+    });
+    lines.push(vals.join(','));
+  });
+  const csv  = lines.join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const safeName = (queryText || 'table').substring(0, 40).replace(/[^a-z0-9]/gi, '_');
+  a.href     = url;
+  a.download = `sjvn_table_${safeName}${tableIdx > 0 ? '_' + (tableIdx + 1) : ''}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * After streaming completes, wrap the Hindi translation section in a styled div
+ * so it gets the orange-left-border treatment.
+ */
+function styleHindiSection(bubbleEl) {
+  // The Hindi section is rendered as an <h3> with text matching हिंदी
+  const h3s = bubbleEl.querySelectorAll('h3');
+  h3s.forEach(h3 => {
+    if (h3.textContent.includes('हिंदी')) {
+      // Wrap h3 + all following siblings until the next h3 or end
+      const wrapper = document.createElement('div');
+      wrapper.className = 'hindi-section';
+      const siblings = [];
+      let el = h3;
+      while (el) {
+        const next = el.nextSibling;
+        siblings.push(el);
+        el = next;
+        // Stop before the next heading or feedback bar
+        if (el && el.nodeType === 1 &&
+            (el.tagName === 'H2' || el.tagName === 'H3' || el.classList?.contains('feedback-bar'))) {
+          break;
+        }
+      }
+      // Insert wrapper before first sibling, then move all into it
+      h3.parentNode.insertBefore(wrapper, h3);
+      siblings.forEach(s => wrapper.appendChild(s));
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+function scrollChat() { const c=document.getElementById('chat'); c.scrollTop=c.scrollHeight; }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return (s||'').replace(/'/g,"\'").replace(/"/g,'&quot;').replace(/\n/g,' '); }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FAQ SIDEBAR — predefined answers + password-protected admin + hide/resize
+// ══════════════════════════════════════════════════════════════════════════════
+
+
+
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Updated Helpers for Backend Security ──────────────────────────────────────
+function isAdminUnlocked() { 
+  // Checks the session flag we set after a successful login
+  return sessionStorage.getItem('faq_admin_active') === '1'; 
+}
+
+function setAdminSession(v) { 
+  // Sets or clears the local flag to show/hide admin buttons
+  v ? sessionStorage.setItem('faq_admin_active', '1') : sessionStorage.removeItem('faq_admin_active'); 
+}
+
+function loadFaqs() {
+  // We return an empty list because renderFaqs() now fetches from the database
+  return []; 
+}
+
+function saveFaqs(f) { 
+  // No longer needed for local storage
+}
+
+// ── Render list ───────────────────────────────────────────────────────────────
+async function renderFaqs() {
+  const list = document.getElementById('faq-list');
+  const empty = document.getElementById('faq-empty');
+  const admin = isAdminUnlocked();
+
+  try {
+    const response = await fetch('/api/faqs');
+    const faqs = await response.json();
+
+    list.querySelectorAll('.faq-item').forEach(el => el.remove());
+
+    if (!faqs.length) {
+      empty.classList.add('show');
+      return;
+    }
+    empty.classList.remove('show');
+
+    faqs.forEach((entry) => {
+      const item = document.createElement('div');
+      item.className = 'faq-item';
+      item.innerHTML =
+        `<span class="faq-q-icon">Q</span><span class="faq-text">${escHtml(entry.q)}</span>` +
+        (admin ? `<button class="faq-delete-btn" onclick="deleteFaq(event, ${entry.id})">✕</button>` : '');
+      
+      item.addEventListener('click', e => {
+        if (e.target.classList.contains('faq-delete-btn')) return;
+        handleFaqClick(entry.q, entry.a);
+      });
+      list.appendChild(item);
+    });
+  } catch (e) {
+    console.error("FAQ fetch failed", e);
+  }
+}
+
+// ── FAQ click: show predefined answer instantly, no Ollama ───────────────────
+function handleFaqClick(q, a) {
+  // Remove empty-state if visible
+  const es = document.getElementById('empty-state');
+  if (es) es.remove();
+
+  // Show user bubble
+  appendUserMsg(q);
+
+  if (a && a.trim()) {
+    // Predefined answer — render directly, no LLM call
+    const botDiv = appendBotMsg('');
+    const bubble = botDiv.querySelector('.bubble');
+    bubble.innerHTML = makeSourcesClickable(marked.parse(a.trim()));
+    // Add to history so follow-up questions have context
+    history.push({ role: 'user',      content: q });
+    history.push({ role: 'assistant', content: a.slice(0, 400) });
+    // Attach feedback bar (same as normal bot messages)
+    if (typeof attachFeedbackBar === 'function') attachFeedbackBar(botDiv, q, a.trim());
+    scrollChat();
+  } else {
+    // No predefined answer — fall back to Ollama
+    document.getElementById('query-input').value = q;
+    sendQuery();
+  }
+}
+
+// ── Admin UI ──────────────────────────────────────────────────────────────────
+function syncAdminUI() {
+  const admin = isAdminUnlocked();
+  const addArea = document.getElementById('faq-add-area');
+  const btn = document.getElementById('faq-admin-btn');
+  
+  if (addArea) addArea.classList.toggle('visible', admin);
+  if (btn) {
+    // Visually indicate if admin mode is active
+    btn.textContent = admin ? '✓ Admin Active' : '⚙ Admin';
+    btn.classList.toggle('admin-active', admin);
+  }
+  
+  // This class helps show/hide delete buttons via CSS
+  document.body.classList.toggle('faq-admin-on', admin);
+  
+  // Refresh the list to ensure delete buttons appear if admin is active
+  renderFaqs();
+}
+
+// ── Admin login modal ─────────────────────────────────────────────────────────
+function openAdminLogin() {
+  // If already logged in, clicking the button should log you out
+  if (isAdminUnlocked()) { 
+    logoutAdmin(); 
+    return; 
+  }
+  
+  // Otherwise, show the modal
+  const modal = document.getElementById('admin-modal-overlay');
+  if (modal) {
+    modal.classList.add('show');
+    const inp = document.getElementById('admin-pw-input');
+    if (inp) {
+      inp.value = '';
+      document.getElementById('admin-pw-error').textContent = '';
+      setTimeout(() => inp.focus(), 100);
+    }
+  }
+}
+function closeAdminModal() {
+  document.getElementById('admin-modal-overlay').classList.remove('show');
+  document.getElementById('admin-pw-input').value = '';
+  document.getElementById('admin-pw-error').textContent = '';
+}
+async function submitAdminLogin() {
+  const inp = document.getElementById('admin-pw-input');
+  const err = document.getElementById('admin-pw-error');
+  
+  if (!inp.value) { err.textContent = 'Password required'; inp.focus(); return; }
+
+  // Create form data to send to the server
+  const formData = new FormData();
+  formData.append('password', inp.value);
+
+  try {
+    const response = await fetch('/admin', {
+      method: 'POST',
+      body: formData,
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (response.ok) {
+      setAdminSession(true); 
+      closeAdminModal(); 
+      syncAdminUI(); // This refreshes the sidebar with admin controls
+    } else {
+      err.textContent = '✕ Incorrect password.'; 
+      inp.value = ''; 
+    }
+  } catch (e) {
+    err.textContent = '✕ Connection error.';
+  }
+}
+async function logoutAdmin() {
+  // 1. Clear frontend session flag
+  setAdminSession(false);
+  
+  // 2. Call the backend logout route to destroy the Flask session
+  try {
+    await fetch('/admin/logout');
+  } catch (e) {
+    console.error("Server logout failed", e);
+  }
+  
+  // 3. Reset UI elements
+  syncAdminUI();
+  
+  // 4. Refresh page to fully clear all admin states
+  window.location.reload();
+}
+
+// ── Add / Delete ──────────────────────────────────────────────────────────────
+async function addFaq() {
+  if (!isAdminUnlocked()) return;
+  const q = document.getElementById('faq-new-input').value.trim();
+  const a = document.getElementById('faq-new-answer').value.trim();
+  if (!q) { document.getElementById('faq-new-input').focus(); return; }
+
+  const response = await fetch('/api/admin/faqs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q, a })
+  });
+
+  if (response.ok) {
+    document.getElementById('faq-new-input').value = '';
+    document.getElementById('faq-new-answer').value = '';
+    renderFaqs(); 
+  } else {
+    alert("Unauthorized or FAQ already exists.");
+  }
+}
+
+async function deleteFaq(e, id) {
+  if (!isAdminUnlocked()) return;
+  e.stopPropagation();
+  if (!confirm("Delete this FAQ permanently from the server?")) return;
+
+  const response = await fetch('/api/admin/faqs', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+
+  if (response.ok) {
+    renderFaqs();
+  }
+}
+
+// ── Sidebar hide / show ───────────────────────────────────────────────────────
+function toggleFaqSidebar() {
+  const sb = document.getElementById('faq-sidebar');
+  sb.classList.toggle('faq-hidden');
+  localStorage.setItem('faq_sidebar_hidden', sb.classList.contains('faq-hidden') ? '1' : '0');
+}
+
+// ── Mobile: tap outside sidebar to close ──────────────────────────────────────
+(function initMobileSidebarClose() {
+  document.addEventListener('click', function(e) {
+    if (window.innerWidth > 640) return;
+    const sb  = document.getElementById('faq-sidebar');
+    const btn = document.getElementById('faq-toggle-btn');
+    if (!sb || sb.classList.contains('faq-hidden')) return;
+    if (!sb.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+      sb.classList.add('faq-hidden');
+      localStorage.setItem('faq_sidebar_hidden', '1');
+    }
+  });
+})();
+
+// ── Resize handle ─────────────────────────────────────────────────────────────
+function initResizeHandle() {
+  const sb  = document.getElementById('faq-sidebar');
+  const hdl = document.getElementById('faq-resize-handle');
+  if (!sb || !hdl) return;
+  let drag = false, startX = 0, startW = 0;
+  hdl.addEventListener('mousedown', e => {
+    drag = true; startX = e.clientX; startW = sb.offsetWidth;
+    hdl.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!drag) return;
+    sb.style.width = Math.max(190, Math.min(400, startW + e.clientX - startX)) + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (!drag) return;
+    drag = false; hdl.classList.remove('dragging');
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function initFaqSidebar() {
+  function onReady(fn) {
+    if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn);
+  }
+  onReady(() => {
+    // Mirror topbar logo into sidebar brand row
+    const topLogo = document.getElementById('topbar-logo');
+    const faqLogo = document.getElementById('faq-brand-logo');
+    if (topLogo && faqLogo) faqLogo.src = topLogo.src;
+
+    // Restore hidden state from last visit
+    // On mobile (≤640px) default to hidden unless explicitly saved as visible
+    const isMobile = window.innerWidth <= 640;
+    const savedHidden = localStorage.getItem('faq_sidebar_hidden');
+    if (savedHidden === '1' || (isMobile && savedHidden !== '0'))
+      document.getElementById('faq-sidebar').classList.add('faq-hidden');
+
+    // Password field — Enter submits
+    const pwInp = document.getElementById('admin-pw-input');
+    if (pwInp) pwInp.addEventListener('keydown', e => { if (e.key==='Enter') submitAdminLogin(); });
+
+    // Ctrl+Enter in question/answer textarea saves FAQ
+    ['faq-new-input','faq-new-answer'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('keydown', e => { if (e.key==='Enter' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); addFaq(); } });
+    });
+
+    // Initialize the Admin UI state and refresh the FAQ list from the database
+    syncAdminUI();
+    initResizeHandle();
+  });
+})();
+</script>
+<!-- Hidden area used for printing tables to PDF -->
+<div id="print-area" style="display:none;"></div>
+
+</body>
+</html>

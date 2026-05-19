@@ -1,0 +1,173 @@
+<!-- 
+  ══════════════════════════════════════════════════════════════
+  FEEDBACK UI SNIPPET — Add this inside your existing index.html
+  ══════════════════════════════════════════════════════════════
+
+  1. Add the CSS block inside your <style> tag
+  2. Add the JS block anywhere inside your <script> tag
+  3. Call  attachFeedback(msgEl, queryText)  after each bot message renders
+
+  The feedback bar appears below every bot answer with:
+    👍  Mark as correct
+    👎  Mark as wrong  →  opens correction box
+    Correction box: user types the right answer → "Save Correction" sends it
+    to /api/feedback and stores it permanently for self-learning.
+-->
+
+<!-- ── CSS ── paste inside your existing <style> ─────────────────────────── -->
+<style>
+.feedback-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #666;
+}
+.feedback-bar button {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background .15s;
+}
+.feedback-bar button:hover { background: #f0f0f0; }
+.feedback-bar button.active-good { background: #d4edda; border-color:#28a745; }
+.feedback-bar button.active-bad  { background: #f8d7da; border-color:#dc3545; }
+.correction-box {
+  display: none;
+  margin-top: 8px;
+  padding: 10px;
+  background: #fff8e1;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+}
+.correction-box textarea {
+  width: 100%;
+  min-height: 60px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px;
+  font-size: 13px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.correction-box .save-btn {
+  margin-top: 6px;
+  padding: 5px 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.correction-box .save-btn:hover { background: #0056b3; }
+.correction-box .saved-msg {
+  color: #28a745;
+  font-size: 12px;
+  margin-top: 4px;
+  display: none;
+}
+</style>
+
+<!-- ── JavaScript ── paste inside your existing <script> ──────────────────── -->
+<script>
+/**
+ * Attach a feedback bar (👍 👎 + correction box) to a bot message element.
+ * @param {HTMLElement} msgEl   - The DOM element containing the bot's answer
+ * @param {string}      query   - The original user question
+ * @param {string}      [filename] - Active document filter if any
+ */
+function attachFeedback(msgEl, query, filename) {
+  // Grab the full text of the bot answer for bad_answer reporting
+  const getAnswerText = () => msgEl.innerText.trim().substring(0, 800);
+
+  const bar = document.createElement('div');
+  bar.className = 'feedback-bar';
+  bar.innerHTML = `
+    <span>Was this helpful?</span>
+    <button class="thumb-up" title="Yes, correct">👍</button>
+    <button class="thumb-down" title="No, incorrect">👎</button>
+    <div class="correction-box">
+      <div style="font-size:13px;margin-bottom:4px;color:#856404;">
+        What is the correct answer? (will be saved for future use)
+      </div>
+      <textarea placeholder="Type the correct information from the PDF..."></textarea>
+      <br>
+      <button class="save-btn">💾 Save Correction</button>
+      <div class="saved-msg">✅ Correction saved! The system will learn from this.</div>
+    </div>
+  `;
+
+  const thumbUp      = bar.querySelector('.thumb-up');
+  const thumbDown    = bar.querySelector('.thumb-down');
+  const corrBox      = bar.querySelector('.correction-box');
+  const corrTA       = bar.querySelector('textarea');
+  const saveBtn      = bar.querySelector('.save-btn');
+  const savedMsg     = bar.querySelector('.saved-msg');
+
+  thumbUp.addEventListener('click', () => {
+    thumbUp.classList.add('active-good');
+    thumbDown.classList.remove('active-bad');
+    corrBox.style.display = 'none';
+    sendFeedback(query, 1, null, null, filename);
+  });
+
+  thumbDown.addEventListener('click', () => {
+    thumbDown.classList.add('active-bad');
+    thumbUp.classList.remove('active-good');
+    corrBox.style.display = 'block';
+  });
+
+  saveBtn.addEventListener('click', () => {
+    const correction = corrTA.value.trim();
+    if (!correction) { corrTA.focus(); return; }
+    const badAnswer = getAnswerText();
+    sendFeedback(query, -1, badAnswer, correction, filename);
+    saveBtn.disabled = true;
+    savedMsg.style.display = 'block';
+    setTimeout(() => { corrBox.style.display = 'none'; }, 3000);
+  });
+
+  msgEl.appendChild(bar);
+}
+
+async function sendFeedback(query, rating, badAnswer, correction, sourceHint) {
+  try {
+    await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query:       query,
+        rating:      rating,
+        bad_answer:  badAnswer  || null,
+        correction:  correction || null,
+        source_hint: sourceHint || null,
+      })
+    });
+  } catch (e) {
+    console.warn('Feedback send failed:', e);
+  }
+}
+</script>
+
+<!--
+  ── HOW TO WIRE IT UP ───────────────────────────────────────────────────────
+  After your code finishes rendering a bot message, call:
+
+    attachFeedback(botMessageElement, currentQuery, activeFilename);
+
+  Example — if your code does something like:
+    const botDiv = document.createElement('div');
+    botDiv.classList.add('bot-message');
+    chatContainer.appendChild(botDiv);
+    // ... streaming fills botDiv ...
+    // When streaming DONE:
+    attachFeedback(botDiv, userQuery, selectedFile);
+
+  That's it. The system handles the rest automatically.
+  ────────────────────────────────────────────────────────────────────────────
+-->
